@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8">
+
+        <title>GGWeb Template</title>
+        <meta name="description" content="Template for making a web page with C++ / Dear ImGui / SDL / OpenGL / Emscripten">
+
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+
+        <!-- FB Meta Tags -->
+        <meta property="og:url" content="https://ggerganov.com">
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="GGWeb Template">
+        <meta property="og:description" content="Template for making a web page with C++ / Dear ImGui / SDL / OpenGL / Emscripten">
+
+        <!-- Twitter Meta Tags -->
+        <meta name="twitter:card" content="summary_large_image">
+        <meta property="twitter:domain" content="ggerganov.com">
+
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta http-equiv="Pragma" content="no-cache" />
+        <meta http-equiv="Expires" content="0" />
+
+        <!--
+        <link rel="apple-touch-icon" sizes="57x57" href="/icons/apple-icon-57x57.png">
+        <link rel="apple-touch-icon" sizes="60x60" href="/icons/apple-icon-60x60.png">
+        <link rel="apple-touch-icon" sizes="72x72" href="/icons/apple-icon-72x72.png">
+        <link rel="apple-touch-icon" sizes="76x76" href="/icons/apple-icon-76x76.png">
+        <link rel="apple-touch-icon" sizes="114x114" href="/icons/apple-icon-114x114.png">
+        <link rel="apple-touch-icon" sizes="120x120" href="/icons/apple-icon-120x120.png">
+        <link rel="apple-touch-icon" sizes="144x144" href="/icons/apple-icon-144x144.png">
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/apple-icon-152x152.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-icon-180x180.png">
+        <link rel="icon" type="image/png" sizes="192x192"  href="/icons/android-icon-192x192.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="96x96" href="/icons/favicon-96x96.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+        <link rel="manifest" href="/icons/manifest.json">
+        <meta name="msapplication-TileColor" content="#ffffff">
+        <meta name="msapplication-TileImage" content="/icons/ms-icon-144x144.png">
+        <meta name="theme-color" content="#ffffff">
+        -->
+
+        <link rel="stylesheet" href="style.css">
+
+        <script type="text/javascript" src="helpers.js"></script>
+    </head>
+    <body>
+        <div id="main-container">
+            <div id="description" align="center">
+                <h2>GGWeb</h2>
+
+                <div id="container_status" align="center">
+                    Loading - please wait ..
+                </div>
+            </div>
+            <div id="container_canvas" hidden>
+                <canvas class="emscripten" id="canvas"></canvas>
+            </div>
+        </div>
+
+        <script type='text/javascript'>
+            var isInitialized = false;
+            var failedToInitialize = false;
+
+            function updateWindowSize() {
+                var w = window,
+                    d = document,
+                    e = d.documentElement,
+                    g = d.getElementsByTagName('body')[0],
+                    x = w.innerWidth || e.clientWidth || g.clientWidth,
+                    y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+                Module.setWindowSize(0.99*x, 0.99*y);
+            }
+
+            // periodically check if the native application has passed some data to the JS layer
+            window.setInterval(function() {
+                if (isInitialized == false) return;
+
+                updateWindowSize();
+
+                {
+                    var data = Module.getData();
+                    if (data.length > 0) {
+                        // do something
+                        console.log('Got data from C++: ', data);
+                    }
+                }
+            }, 500);
+
+            // TODO : this is probably an overkill, but it seems to work on all browsers and devices
+            function updateClipboard() {
+                var dataClipboard = Module.getClipboard();
+                if (dataClipboard.length > 0) {
+                    console.log(dataClipboard);
+                    copyToClipboard(dataClipboard);
+                    if (navigator.share) {
+                        navigator.share({
+                                        title: document.title,
+                                        text: dataClipboard
+                                        //,url: window.location.href
+                        })
+                            .then(() => console.log('Successful share'))
+                            .catch(error => console.log('Error sharing:', error));
+                    }
+                }
+            }
+
+            // Some actions can only be performed after the user has interacted with the page.
+            // This is due to security reasons. Therefore, all such actions should be added here
+            function checkForActions(event) {
+                // on Firefox Quantum, need to call this directly, otherwise the following error is reported:
+                // document.execCommand('cut'/'copy') was denied because it was not called from inside a short running user-generated event handler.
+                updateClipboard();
+
+                // on other browsers, need to update the clipboard after a short interval
+                // I guess it has something to do with the ImGui::IsMouseReleased(0) logic - probably need to use the mouse-down event instead ..
+                setTimeout(function() {
+                    // - copy to clipboard
+                    // - open new tab
+                    // - etc.
+
+                    updateClipboard();
+
+                    // check if the app requested to open a URL
+                    var dataURL = Module.getURL();
+                    if (dataURL.length > 0) {
+                        window.open(dataURL, '_blank').focus();
+                    }
+                }, 250);
+            }
+
+            function onkeydown(event) {
+                if (event.ctrlKey ||
+                    (event.keyCode >= 112 && event.keyCode <= 123)) {
+                    event.stopImmediatePropagation();
+                    return;
+                }
+
+                if (event.keyCode == 8 || // Backspace
+                    event.keyCode == 9 || // Tab
+                    event.keyCode == 46 || // Delete
+                    (event.keyCode >= 37 && event.keyCode <= 40)) { // Arrow keys
+                    event.preventDefault();
+                }
+            }
+
+            function init() {
+                document.getElementById('container_status').innerHTML = "WebAssembly module initialized successfully!"
+                document.getElementById('container_status').style.color = "#00ff00";
+
+                window.addEventListener('keydown', onkeydown, true);
+                window.addEventListener('touchend', checkForActions, true);
+                window.addEventListener('mouseup', checkForActions, true);
+            }
+
+            function doInit() {
+                if (isInitialized == false) {
+                    //var someParam = findGetParameter('p') || 0;
+
+                    if (Module.doInit() == false) {
+                        failedToInitialize = true;
+                        window.onerror('Failed to initialize WASM module');
+                        return;
+                    }
+
+                    updateWindowSize();
+
+                    isInitialized = true;
+                }
+
+                {
+                    var status = document.getElementById("description");
+                    status.hidden = true;
+                }
+
+                {
+                    var canvas = document.getElementById("container_canvas");
+                    canvas.hidden = false;
+                    canvas.classList.add("fade-in");
+                }
+            }
+
+            var Module = {
+                arguments: [],
+                preRun: [(function() {
+                    console.log(
+                            '    Build time: @GIT_DATE@\n' +
+                            '   Github repo: https://github.com/ggerganov/ggweb\n' +
+                            '   Commit hash: https://github.com/ggerganov/ggweb/commit/@GIT_SHA1@"\n' +
+                            'Commit subject: @GIT_COMMIT_SUBJECT@\n'
+                    );
+                })],
+                postRun: [(function () {
+                    if (failedToInitialize) return;
+
+                    init();
+                    doInit();
+                })],
+                canvas: (function() {
+                    var canvas = document.getElementById('canvas');
+                    canvas.addEventListener("webglcontextlost", function(e) {
+                        alert('WebGL context lost. You will need to reload the page.'); e.preventDefault();
+                    }, false);
+
+                    return canvas;
+                })(),
+                print: function(text) {
+                    text = Array.prototype.slice.call(arguments).join(' ');
+                    console.log(text);
+                },
+                printErr: function(text) {
+                    text = Array.prototype.slice.call(arguments).join(' ');
+                    console.error(text);
+                },
+                setStatus: function(text) {
+                    console.log("status: " + text);
+                },
+                monitorRunDependencies: function(left) {
+                    // no run dependencies to log
+                }
+            };
+
+            window.onerror = function(event) {
+                failedToInitialize = true;
+                console.log("onerror: " + JSON.stringify(event));
+                document.getElementById('container_status').innerHTML = JSON.stringify(event);
+                document.getElementById('container_status').innerHTML += '<br>This browser is not supported. Please try a different browser';
+                document.getElementById('container_status').style.color = "#ff0000";
+            };
+        </script>
+
+        <script>document.write('<script async type="text/javascript" src="@TARGET@.js?dev=' + Math.floor(Math.random() * 1000) + '"\><\/script>');</script>
+    </body>
+</html>

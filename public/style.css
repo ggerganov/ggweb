@@ -1,0 +1,96 @@
+body {
+    overflow-y: hidden;
+    overflow-x: hidden;
+    margin: 0;
+    /*background-image: url('images/background-0.png');*/
+    background-repeat:no-repeat;
+    background-position: center center;
+    background-color: #FFFFFF;
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    -webkit-font-smoothing: subpixel-antialiased;
+    font-smoothing: subpixel-antialiased;
+}
+
+#main-container {
+	font-size:12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.emscripten {
+    padding: 0;
+    margin: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    background-color: #00000000;
+}
+
+div.emscripten_border { border: 1px solid black; }
+
+canvas.emscripten {
+    border: 0px none;
+    background: transparent;
+    background-color: #00000000;
+}
+
+#description {
+    margin: 10px;
+    padding: 10px;
+    color: #000000;
+}
+
+.fade-in {
+    animation: fadeIn ease 0.1s;
+    -webkit-animation: fadeIn ease 0.1s;
+    -moz-animation: fadeIn ease 0.1s;
+    -o-animation: fadeIn ease 0.1s;
+    -ms-animation: fadeIn ease 0.1s;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity:0;
+    }
+    100% {
+        opacity:1;
+    }
+}
+
+@-moz-keyframes fadeIn {
+    0% {
+        opacity:0;
+    }
+    100% {
+        opacity:1;
+    }
+}
+
+@-webkit-keyframes fadeIn {
+    0% {
+        opacity:0;
+    }
+    100% {
+        opacity:1;
+    }
+}
+
+@-o-keyframes fadeIn {
+    0% {
+        opacity:0;
+    }
+    100% {
+        opacity:1;
+    }
+}
+
+@-ms-keyframes fadeIn {
+    0% {
+        opacity:0;
+    }
+    100% {
+        opacity:1;
+    }

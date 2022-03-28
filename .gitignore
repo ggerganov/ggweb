@@ -1,0 +1,6 @@
+.exrc
+.cache
+build/
+build-em/
+
+compile_commands.json
