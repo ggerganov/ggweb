@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 
 #include <string>
+#include <cstdint> // uint32_t
 
 struct SDL_Window;
 
